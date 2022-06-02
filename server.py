@@ -27,15 +27,31 @@ def resultPooling(lines, num_results=5, pmode='avg'):
     results = {}
     for line in lines:
         d = line.split('\t')
+        id =  d[0] + d[1]
+        if id not in results:
+            results[id] = []
         species = d[2].replace(', ', '_')
         score = float(d[-1])
-        if not species in results:
-            results[species] = []
-        results[species].append(score)
+        results[id].append((species, score))
 
+    top_species = [v[0][0] for v in results.values()]
+
+    all_same = lambda x : x.count(x[0]) == len(x)
+    mean = lambda x : sum(x) / len(x)
+
+    if all_same(top_species):
+        top_scores = [v[0][1] for v in results.values()]
+        if pmode == 'max':
+            score = max(top_scores)
+        else:
+            socre = mean(top_scores)
+        return [[top_species[0], score]]
+    else:
+        return [[top_species[0], 0.0]]
+
+    '''
     # Compute score for each species
     for species in results:
-
         if pmode == 'max':
             results[species] = max(results[species])
         else:
@@ -43,8 +59,8 @@ def resultPooling(lines, num_results=5, pmode='avg'):
 
     # Sort results
     results = sorted(results.items(), key=lambda x: x[1], reverse=True)
-
     return results[:num_results]
+    '''
 
 @bottle.route('/analyze', method='POST')
 def handleRequest():
@@ -161,6 +177,7 @@ def handleRequest():
 
             # Return response
             del data['meta']
+            print(data)
             return json.dumps(data)
 
         else:
